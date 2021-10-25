@@ -14,9 +14,9 @@ cd ./lib/meam
 make -f Makefile.gfortran
 cd ./../../src
 
-make package-status
 make yes-meam
 make yes-mc
 make yes-USER-REAXC
+make package-status
 make mpi
 
