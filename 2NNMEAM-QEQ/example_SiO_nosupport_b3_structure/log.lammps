@@ -1,0 +1,42 @@
+LAMMPS (14 May 2016)
+units		metal
+boundary	p p p
+atom_style	charge
+
+
+#  Simulation control  #########################################################
+box tilt	small
+read_data	'xo.lmp'
+  orthogonal box = (0 0 0) to (29.8435 29.8435 29.8435)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  1536 atoms
+
+variable	Nele equal 2
+variable	Elements string 'Si O'
+
+variable	Electrostatic string 'T'
+variable	Nevery_qeq equal 1
+variable	maxiter_qeq equal 50
+variable	maxrepeat_qeq equal 10
+
+variable	Nprnt equal	10
+
+variable	ptarget equal 0.0
+variable	vmax equal 0.001
+variable	etol equal 1.e-10
+variable	ftol equal 1.e-8
+variable	maxiter equal 10000
+variable	maxeval equal 1000000
+
+variable	dataout string 'dataout.cool'
+################################################################################
+
+
+#  Potential
+if "${Electrostatic} == T" then 	"pair_style	hybrid/overlay coul/streitz 12.0 wolf 0.20 meam" 	"pair_coeff	* * meam			'library.meam' ${Elements} 'library.meam_alloy' ${Elements}" 	"pair_coeff	* * coul/streitz	'library.streitz' ${Elements}" else 	"pair_style	meam" 	"pair_coeff	* * 'library.meam' ${Elements} 'library.meam_alloy' ${Elements}"
+pair_style	hybrid/overlay coul/streitz 12.0 wolf 0.20 meam
+pair_coeff	* * meam			'library.meam' ${Elements} 'library.meam_alloy' ${Elements}
+pair_coeff	* * meam			'library.meam' Si O 'library.meam_alloy' ${Elements}
+pair_coeff	* * meam			'library.meam' Si O 'library.meam_alloy' Si O
+ERROR: Unrecognized lattice type in MEAM file 2 (../pair_meam.cpp:713)
