@@ -3,7 +3,7 @@
 
 ## Installation (ubuntu 18.04 LTS, ubuntu 20.04 LTS and Debian 10.0)
 	git clone https://github.com/by-student-2017/lammps-14May16.git
-	lammps-14May16
+	cd lammps-14May16
 	chmod +x install.sh
 	./install.sh
 
