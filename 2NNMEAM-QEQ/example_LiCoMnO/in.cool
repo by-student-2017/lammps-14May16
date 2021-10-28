@@ -58,7 +58,7 @@ print			'>THERMO:#  Step  Temp.   E_MEAM     E_ES     Potential  Int.Energy Enth
 print			'THERMO:#  ----  ----  ---------  --------  -----------  --------  --------  ----------  -------  -------------------------'
 thermo			${Nprnt}
 variable		ene_meam equal pe-ecoul
-thermo_style	custom step temp v_ene_meam ecoul pe etotal enthalpy press elong lx ly lz c_Qavg1 c_Qavg2 
+thermo_style	custom step temp v_ene_meam ecoul pe etotal enthalpy press elong lx ly lz c_Qavg1 c_Qavg2 c_Qavg3 c_Qavg4 
 thermo_modify	norm yes
 thermo_modify	format  1 ">THERMO:%7d"		#  step
 thermo_modify	format  2 "%6.0f"			#  temperature
@@ -74,6 +74,8 @@ thermo_modify	format 11 "%8.4f"			#  boxsize2
 thermo_modify	format 12 "%8.4f"			#  boxsize3
 thermo_modify	format 13 "%+8.5f"			#  charge1
 thermo_modify	format 14 "%+8.5f"			#  charge2
+thermo_modify   format 15 "%+8.5f"                      #  charge3
+thermo_modify   format 16 "%+8.5f"                      #  charge4
 
 
 #  Find equilibrium structure
