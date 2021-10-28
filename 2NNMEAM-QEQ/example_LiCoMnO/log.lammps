@@ -1,0 +1,258 @@
+LAMMPS (14 May 2016)
+units		metal
+boundary	p p p
+atom_style	charge
+
+
+#  Simulation control  #########################################################
+box tilt	small
+read_data	'xo.lmp'
+  triclinic box = (0 0 0) to (23.1792 20.5051 19.272) with tilt (10.9356 11.3297 7.2086)
+  1 by 1 by 1 MPI processor grid
+  reading atoms ...
+  960 atoms
+
+variable	Nele equal 4
+variable	Elements string 'Li Mn Co O'
+
+variable	Electrostatic string 'T'
+variable	Nevery_qeq equal 1
+variable	maxiter_qeq equal 50
+variable	maxrepeat_qeq equal 10
+
+variable	Nprnt equal	10
+
+variable	ptarget equal 0.0
+variable	vmax equal 0.001
+variable	etol equal 1.e-10
+variable	ftol equal 1.e-8
+variable	maxiter equal 10000
+variable	maxeval equal 1000000
+
+variable	dataout string 'dataout.cool'
+################################################################################
+
+
+#  Potential
+if "${Electrostatic} == T" then 	"pair_style	hybrid/overlay coul/streitz 12.0 wolf 0.20 meam" 	"pair_coeff	* * meam			'library.meam' ${Elements} 'library.meam_alloy' ${Elements}" 	"pair_coeff	* * coul/streitz	'library.streitz' ${Elements}" else 	"pair_style	meam" 	"pair_coeff	* * 'library.meam' ${Elements} 'library.meam_alloy' ${Elements}"
+pair_style	hybrid/overlay coul/streitz 12.0 wolf 0.20 meam
+pair_coeff	* * meam			'library.meam' ${Elements} 'library.meam_alloy' ${Elements}
+pair_coeff	* * meam			'library.meam' Li Mn Co O 'library.meam_alloy' ${Elements}
+pair_coeff	* * meam			'library.meam' Li Mn Co O 'library.meam_alloy' Li Mn Co O
+pair_coeff	* * coul/streitz	'library.streitz' ${Elements}
+pair_coeff	* * coul/streitz	'library.streitz' Li Mn Co O
+
+
+#  Neighbor
+neighbor		0.3 bin
+neigh_modify	delay 0
+
+
+#  Average Charge
+variable	n loop ${Nele} pad
+variable	n loop 4 pad
+label	Qavg
+   group	type$n type $n
+   group	type1 type $n
+   group	type1 type 1
+192 atoms in group type1
+   compute	q$n type$n property/atom q
+   compute	q1 type$n property/atom q
+   compute	q1 type1 property/atom q
+   compute	Qavg$n type$n reduce ave c_q$n
+   compute	Qavg1 type$n reduce ave c_q$n
+   compute	Qavg1 type1 reduce ave c_q$n
+   compute	Qavg1 type1 reduce ave c_q1
+   next	n
+jump	SELF Qavg
+   group	type$n type $n
+   group	type2 type $n
+   group	type2 type 2
+128 atoms in group type2
+   compute	q$n type$n property/atom q
+   compute	q2 type$n property/atom q
+   compute	q2 type2 property/atom q
+   compute	Qavg$n type$n reduce ave c_q$n
+   compute	Qavg2 type$n reduce ave c_q$n
+   compute	Qavg2 type2 reduce ave c_q$n
+   compute	Qavg2 type2 reduce ave c_q2
+   next	n
+jump	SELF Qavg
+   group	type$n type $n
+   group	type3 type $n
+   group	type3 type 3
+128 atoms in group type3
+   compute	q$n type$n property/atom q
+   compute	q3 type$n property/atom q
+   compute	q3 type3 property/atom q
+   compute	Qavg$n type$n reduce ave c_q$n
+   compute	Qavg3 type$n reduce ave c_q$n
+   compute	Qavg3 type3 reduce ave c_q$n
+   compute	Qavg3 type3 reduce ave c_q3
+   next	n
+jump	SELF Qavg
+   group	type$n type $n
+   group	type4 type $n
+   group	type4 type 4
+512 atoms in group type4
+   compute	q$n type$n property/atom q
+   compute	q4 type$n property/atom q
+   compute	q4 type4 property/atom q
+   compute	Qavg$n type$n reduce ave c_q$n
+   compute	Qavg4 type$n reduce ave c_q$n
+   compute	Qavg4 type4 reduce ave c_q$n
+   compute	Qavg4 type4 reduce ave c_q4
+   next	n
+jump	SELF Qavg
+
+
+#  Thermo
+print			'>THERMO:#  Step  Temp.   E_MEAM     E_ES     Potential  Int.Energy Enthalpy    Pressure                   BoxSize'
+>THERMO:#  Step  Temp.   E_MEAM     E_ES     Potential  Int.Energy Enthalpy    Pressure                   BoxSize
+print			'THERMO:#  ----  ----  ---------  --------  -----------  --------  --------  ----------  -------  -------------------------'
+THERMO:#  ----  ----  ---------  --------  -----------  --------  --------  ----------  -------  -------------------------
+thermo			${Nprnt}
+thermo			10
+variable		ene_meam equal pe-ecoul
+thermo_style	custom step temp v_ene_meam ecoul pe etotal enthalpy press elong lx ly lz c_Qavg1 c_Qavg2
+thermo_modify	norm yes
+thermo_modify	format  1 ">THERMO:%7d"		#  step
+thermo_modify	format  2 "%6.0f"			#  temperature
+thermo_modify	format  3 "%9.5f"			#  meam energy
+thermo_modify	format  4 "%9.5f"			#  electrostatic energy
+thermo_modify	format  5 "%12.8f"			#  potential energy
+thermo_modify	format  6 "%9.5f"			#  internal energy
+thermo_modify	format  7 "%9.5f"			#  enthalpy
+thermo_modify	format  8 "%11.3f"			#  pressure
+thermo_modify	format  9 "%8.1e"			#  dummy
+thermo_modify	format 10 "%8.4f"			#  boxsize1
+thermo_modify	format 11 "%8.4f"			#  boxsize2
+thermo_modify	format 12 "%8.4f"			#  boxsize3
+thermo_modify	format 13 "%+8.5f"			#  charge1
+thermo_modify	format 14 "%+8.5f"			#  charge2
+
+
+#  Find equilibrium structure
+if "${Electrostatic} == T" then "fix qeq 	all qeq/slater ${Nevery_qeq} 12.0 1.e-6 ${maxiter_qeq} ${maxrepeat_qeq} coul/streitz"
+fix qeq 	all qeq/slater ${Nevery_qeq} 12.0 1.e-6 ${maxiter_qeq} ${maxrepeat_qeq} coul/streitz
+fix qeq 	all qeq/slater 1 12.0 1.e-6 ${maxiter_qeq} ${maxrepeat_qeq} coul/streitz
+fix qeq 	all qeq/slater 1 12.0 1.e-6 50 ${maxrepeat_qeq} coul/streitz
+fix qeq 	all qeq/slater 1 12.0 1.e-6 50 10 coul/streitz
+
+min_style   cg
+minimize    ${etol} ${ftol} ${maxiter} ${maxeval}
+minimize    1e-10 ${ftol} ${maxiter} ${maxeval}
+minimize    1e-10 1e-08 ${maxiter} ${maxeval}
+minimize    1e-10 1e-08 10000 ${maxeval}
+minimize    1e-10 1e-08 10000 1000000
+Neighbor list info ...
+  4 neighbor list requests
+  update every 1 steps, delay 0 steps, check yes
+  max neighbors/atom: 2000, page size: 100000
+  master list distance cutoff = 12.3
+  ghost atom cutoff = 12.3
+  binsize = 6.15 -> bins = 8 5 4
+Memory usage per processor = 67.4795 Mbytes
+Step Temp ene_meam E_coul PotEng TotEng Enthalpy Press E_long Lx Ly Lz Qavg1 Qavg2 
+>THERMO:      0      0  -1.45929  -2.28238  -3.74167557  -3.74168  -4.20866  -78413.579  0.0e+00  23.1792  20.5051  19.2720 +0.41898 +1.06237 
+>THERMO:      7      0  -1.54023  -2.46444  -4.00467553  -4.00468  -4.74264 -123915.566  0.0e+00  23.1792  20.5051  19.2720 +0.39389 +1.08177 
+Loop time of 14.4058 on 1 procs for 7 steps with 960 atoms
+
+97.2% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = linesearch alpha is zero
+  Energy initial, next-to-last, final = 
+        -3.74167556855     -4.00467476002     -4.00467552711
+  Force two-norm initial, final = 54.1052 3.51975
+  Force max component initial, final = 2.29391 0.188705
+  Final line search alpha, max atom move = 4.89151e-07 9.2305e-08
+  Iterations, force evaluations = 7 47
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 9.1359     | 9.1359     | 9.1359     |   0.0 | 63.42
+Neigh   | 0.072184   | 0.072184   | 0.072184   |   0.0 |  0.50
+Comm    | 0.0049123  | 0.0049123  | 0.0049123  |   0.0 |  0.03
+Output  | 0          | 0          | 0          |   0.0 |  0.00
+Modify  | 5.1907     | 5.1907     | 5.1907     |   0.0 | 36.03
+Other   |            | 0.002102   |            |       |  0.01
+
+Nlocal:    960 ave 960 max 960 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    10731 ave 10731 max 10731 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    393536 ave 393536 max 393536 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:  787072 ave 787072 max 787072 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 787072
+Ave neighs/atom = 819.867
+Neighbor list builds = 3
+Dangerous builds = 0
+
+fix relax	all box/relax aniso ${ptarget} vmax ${vmax}
+fix relax	all box/relax aniso 0 vmax ${vmax}
+fix relax	all box/relax aniso 0 vmax 0.001
+minimize	${etol} ${ftol} ${maxiter} ${maxeval}
+minimize	1e-10 ${ftol} ${maxiter} ${maxeval}
+minimize	1e-10 1e-08 ${maxiter} ${maxeval}
+minimize	1e-10 1e-08 10000 ${maxeval}
+minimize	1e-10 1e-08 10000 1000000
+Memory usage per processor = 68.0459 Mbytes
+Step Temp ene_meam E_coul PotEng TotEng Enthalpy Press E_long Lx Ly Lz Qavg1 Qavg2 
+>THERMO:      7      0  -1.54023  -2.46444  -4.00467612  -4.00468  -4.74264 -123916.324  0.0e+00  23.1792  20.5051  19.2720 +0.39389 +1.08177 
+>THERMO:     10      0  -1.53787  -2.47383  -4.01170081  -4.01170  -4.71158 -118522.743  0.0e+00  23.1097  20.4444  19.2236 +0.39468 +1.08263 
+>THERMO:     20      0  -1.52698  -2.50647  -4.03345603  -4.03346  -4.59568  -97983.552  0.0e+00  22.8779  20.2406  19.0589 +0.39730 +1.08534 
+>THERMO:     30      0  -1.51091  -2.54005  -4.05095932  -4.05096  -4.45696  -72859.716  0.0e+00  22.6480  20.0356  18.8881 +0.39990 +1.08815 
+>THERMO:     40      0  -1.48898  -2.57502  -4.06399417  -4.06399  -4.29505  -42719.616  0.0e+00  22.4255  19.8305  18.7068 +0.40258 +1.09104 
+>THERMO:     50      0  -1.46396  -2.60789  -4.07184576  -4.07185  -4.13259  -11540.103  0.0e+00  22.2526  19.6515  18.5140 +0.40512 +1.09370 
+>THERMO:     60      0  -1.45357  -2.62122  -4.07478361  -4.07478  -4.07784    -586.315  0.0e+00  22.2768  19.6166  18.3213 +0.40605 +1.09457 
+>THERMO:     70      0  -1.45108  -2.62582  -4.07689678  -4.07690  -4.07380     597.625  0.0e+00  22.3214  19.6788  18.1480 +0.40640 +1.09465 
+>THERMO:     72      0  -1.45109  -2.62580  -4.07688765  -4.07689  -4.07382     591.889  0.0e+00  22.3215  19.6788  18.1480 +0.40641 +1.09464 
+Loop time of 36.1971 on 1 procs for 65 steps with 960 atoms
+
+95.1% CPU use with 1 MPI tasks x no OpenMP threads
+
+Minimization stats:
+  Stopping criterion = linesearch alpha is zero
+  Energy initial, next-to-last, final = 
+        -4.00467612271     -4.07690013868     -4.07688764633
+  Force two-norm initial, final = 1230.91 18.7286
+  Force max component initial, final = 752.857 3.48789
+  Final line search alpha, max atom move = 1.75609e-08 6.12506e-08
+  Iterations, force evaluations = 65 95
+
+MPI task timing breakdown:
+Section |  min time  |  avg time  |  max time  |%varavg| %total
+---------------------------------------------------------------
+Pair    | 24.47      | 24.47      | 24.47      |   0.0 | 67.60
+Neigh   | 0.53982    | 0.53982    | 0.53982    |   0.0 |  1.49
+Comm    | 0.0088727  | 0.0088727  | 0.0088727  |   0.0 |  0.02
+Output  | 0.0006888  | 0.0006888  | 0.0006888  |   0.0 |  0.00
+Modify  | 11.158     | 11.158     | 11.158     |   0.0 | 30.82
+Other   |            | 0.01966    |            |       |  0.05
+
+Nlocal:    960 ave 960 max 960 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Nghost:    10731 ave 10731 max 10731 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+Neighs:    443072 ave 443072 max 443072 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+FullNghs:  886144 ave 886144 max 886144 min
+Histogram: 1 0 0 0 0 0 0 0 0 0
+
+Total # of neighbors = 886144
+Ave neighs/atom = 923.067
+Neighbor list builds = 18
+Dangerous builds = 0
+
+#  Write data
+write_data	${dataout}
+write_data	dataout.cool
+write_dump	all cfg  ${dataout}.cfg mass type xs ys zs q modify element ${Elements} sort id
+write_dump	all cfg  dataout.cool.cfg mass type xs ys zs q modify element ${Elements} sort id
+write_dump	all cfg  dataout.cool.cfg mass type xs ys zs q modify element Li Mn Co O sort id
+Total wall time: 0:00:51
